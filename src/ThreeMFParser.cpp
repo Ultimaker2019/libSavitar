@@ -56,8 +56,8 @@ std::string ThreeMFParser::sceneToString(Scene scene)
     pugi::xml_node build_node = model_node.append_child("build");
 
     model_node.append_attribute("unit") = scene.getUnit().c_str();
-    model_node.append_attribute("xmlns") = xml_namespace::getCuraUri().c_str();
-    model_node.append_attribute("xmlns:cura") = xml_namespace::getDefaultUri().c_str();
+    model_node.append_attribute("xmlns") = xml_namespace::getDefaultUri().c_str();
+    model_node.append_attribute("xmlns:cura") = xml_namespace::getCuraUri().c_str();
     model_node.append_attribute("xml:lang") ="en-US";
 
     for(int i = 0; i < scene.getAllSceneNodes().size(); i++)
@@ -75,13 +75,7 @@ std::string ThreeMFParser::sceneToString(Scene scene)
         {
             object.append_attribute("name") = scene_node->getName().c_str();
         }
-        object.append_attribute("type") = "model";
-
-        if(scene_node->getMeshData().getVertices().size() != 0)
-        {
-            pugi::xml_node mesh = object.append_child("mesh");
-            scene_node->getMeshData().toXmlNode(mesh);
-        }
+        object.append_attribute("type") = scene_node->getType().c_str();
 
         std::map<std::string, std::string> per_object_settings = scene_node->getSettings();
         if(!per_object_settings.empty())
@@ -96,6 +90,12 @@ std::string ThreeMFParser::sceneToString(Scene scene)
                 setting.append_attribute("type") = "xs:string";
             }
         }
+        
+        if(scene_node->getMeshData().getVertices().size() != 0)
+        {
+            pugi::xml_node mesh = object.append_child("mesh");
+            scene_node->getMeshData().toXmlNode(mesh);
+        }
 
         if(scene_node->getChildren().size() != 0)
         {
@@ -106,6 +106,18 @@ std::string ThreeMFParser::sceneToString(Scene scene)
                 component.append_attribute("objectid") = child_scene_node->getId().c_str();
                 component.append_attribute("transform") = child_scene_node->getTransformation().c_str();
             }
+        }
+        if(scene_node->getMeshNode() != nullptr)
+        {
+            if(object.child("metadatagroup"))
+            {
+                object.append_child("metadatagroup");
+            }
+            pugi::xml_node mesh_node_setting = object.child("metadatagroup").append_child("metadata");
+            mesh_node_setting.append_attribute("name") = "mesh_node_objectid";
+            mesh_node_setting.text().set(scene_node->getMeshNode()->getId().c_str());
+            mesh_node_setting.append_attribute("preserve") = "true";
+            mesh_node_setting.append_attribute("type") = "xs:string";
         }
     }
 
